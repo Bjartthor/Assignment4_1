@@ -1,44 +1,32 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-
+#include <zephyr/drivers/pwm.h>
 // static because its only used in this file
 
-static const struct gpio_dt_spec btn = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+static const struct pwm_dt_spec pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 
-static struct gpio_callback btn_cb; // what function to call when the interupt fires
-static struct k_work_delayable LED_toggle_work; // toggle the LED, function not in the interrupt
-
-static void LED_toggle(struct k_work *work)
+static int set_pwm_value(int percent)
 {
-	if (gpio_pin_get_dt(&btn)) {
-		gpio_pin_toggle_dt(&led);
-	}
+	uint32_t pulse_length = (uint64_t)pwm_led.period * percent / 100; // uint64_t to avoid overflow 20e6*100 at 100% duty cycle
+	return pwm_set_dt(&pwm_led, pwm_led.period, pulse_length); 
 }
 
-
-static void btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-	k_work_reschedule(&LED_toggle_work, K_MSEC(2)); //wait 2ms then run the LED_toggle
-    // 2ms gives good margins since for error, since 1ms works from part1
-}
 
 int main(void)
 {
-	if (!gpio_is_ready_dt(&btn) || !gpio_is_ready_dt(&led)) {
-		return 0;
-	}
-	gpio_pin_configure_dt(&btn, GPIO_INPUT);
-	gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
 
-    k_work_init_delayable(&LED_toggle_work, LED_toggle); //when this note comes up run LED_toggle
-
-    gpio_init_callback(&btn_cb, btn_isr, BIT(btn.pin)); // call button ISR for only this pin on the port
-	gpio_add_callback(btn.port, &btn_cb); // let it know which port to look at
-    gpio_pin_interrupt_configure_dt(&btn, GPIO_INT_EDGE_TO_ACTIVE); // Interupt when button is pressed 
-
+	set_pwm_value(25);
+	k_msleep(1000000);   /* hold 25 % so the scope can measure it */
+	
 	while (1) {
-		k_msleep(1000);
+		for (int duty = 0; duty <= 100; duty++) {  // increase up for 1s
+			set_pwm_value(duty);
+			k_msleep(10);
+		}
+		for (int duty = 100; duty >= 0; duty--) {   // decrease for 1s
+			set_pwm_value(duty);
+			k_msleep(10);
 	}
+}
 }
 
