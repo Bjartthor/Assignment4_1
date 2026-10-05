@@ -14,9 +14,9 @@ static int set_pwm_value(int percent)
 
 int main(void)
 {
-
-	set_pwm_value(25);
-	k_msleep(1000000);   /* hold 25 % so the scope can measure it */
+	// used for oscilliscoper measurement
+	//set_pwm_value(25); 
+	//k_msleep(1000000);  
 	
 	while (1) {
 		for (int duty = 0; duty <= 100; duty++) {  // increase up for 1s
