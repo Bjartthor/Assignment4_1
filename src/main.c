@@ -7,7 +7,7 @@ static const struct pwm_dt_spec pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 
 static int set_pwm_value(int percent)
 {
-	uint32_t pulse_length = (uint64_t)pwm_led.period * percent / 100; // uint64_t to avoid overflow 20e6*100 at 100% duty cycle
+	uint32_t pulse_length = pwm_led.period * percent / 100; // uint64_t to avoid overflow 20e6*100 at 100% duty cycle
 	return pwm_set_dt(&pwm_led, pwm_led.period, pulse_length); 
 }
 
